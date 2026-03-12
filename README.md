@@ -25,16 +25,25 @@
 
 Think of it as **Cursor/Roo Code, but for Unreal Engine** — with deep engine integration that goes far beyond text editing.
 
+> **How is this different from UE 5.7's built-in AI assistant?** Unreal Engine 5.7 includes a contextual F1 AI helper focused on *guidance* — explaining features, suggesting workflows, and linking documentation. Autonomix is a *doer*: it executes tool calls that modify your project (create Blueprints, edit C++, build materials, spawn actors), with every action checkpointed, auditable, and undoable. They're complementary — one explains, the other builds.
+
 ### Key Differentiators
 
 - **T3D Blueprint Injection** — Creates entire Blueprint node graphs in a single transaction using UE's native T3D format (the same format the editor uses for Ctrl+C/Ctrl+V). No node-by-node API calls.
 - **GUID Placeholder System** — AI uses human-readable tokens (`LINK_1`, `GUID_A`, `NODEREF_Entry`) that get resolved to real engine GUIDs automatically, preserving cross-node pin links.
-- **60+ AI Tools** — Not just file editing. Blueprint creation, component management, material graphs, animation systems, PCG, Enhanced Input, performance profiling, renderer settings, and more.
+- **80+ AI Tools** — Not just file editing. Blueprint creation, component management, material graphs, animation systems, PCG, Enhanced Input, performance profiling, renderer settings, Behavior Trees, Sequencer, DataTables, Python scripting, viewport vision, PIE automation, and more.
 - **Git-Based Checkpoint System** — Shadow git repo per session lets you save, restore, and diff any point in the AI's work.
 - **Agentic Tool Loop** — The AI autonomously plans, executes tools, verifies results, and iterates until the task is complete.
 - **Multi-Provider Support** — Works with Anthropic Claude, OpenAI, Google Gemini, DeepSeek, Mistral, xAI, OpenRouter, Ollama, LM Studio, and any custom OpenAI-compatible endpoint.
 - **Smart Context Management** — Automatic conversation condensation, sliding-window truncation, and token budget management for long sessions.
 - **Fuzzy Diff Applicator** — Levenshtein-distance fuzzy matching for code edits, preventing failures from minor whitespace or formatting differences.
+
+### 🧠 Next-Gen Agentic Autonomy (v1.1)
+- **Multimodal Viewport Vision** — Autonomix isn't blind. Using Vision-Language Models (VLMs), the AI can trigger the `capture_viewport` tool to visually analyze the Editor. It can build a UI, "look" at the viewport, and autonomously correct misaligned anchor points or bad lighting setups.
+- **Automated PIE Playtesting** — The AI closes the QA loop. It can autonomously launch Play-In-Editor (PIE), simulate player inputs, read the runtime Message Log for `Accessed None` errors or C++ asserts, and iteratively fix its own bugs before you even touch the mouse.
+- **T3D Pre-Flight Validation Sandbox** — Before applying Blueprint changes, the AI dry-runs node class references and function names against Unreal's Reflection system. Pin type mismatches are caught and warned before injection.
+- **Auto-Layout Graph Formatting** — All T3D-injected Blueprints are automatically passed through a Sugiyama-style DAG layout algorithm, ensuring generated node graphs are beautifully organized and instantly human-readable.
+- **Python API "Escape Hatch"** — For complex bulk operations, the AI can autonomously write and execute native Unreal Python scripts, granting it instant access to the entire UE Editor Utility and Asset Management API.
 
 ---
 
@@ -229,6 +238,73 @@ Regex-powered file content search with 2-line context before/after each match. F
 | `source_control_add` | Mark files for add |
 | `source_control_revert` | Revert files to source control state |
 
+### 🐍 Python Automation Tools (1 tool)
+
+| Tool | Description |
+|------|-------------|
+| `execute_python_script` | Write and execute Python scripts natively via IPythonScriptPlugin for bulk asset renaming, Niagara/MetaSound manipulation, custom editor utilities, and any operation exposed to Python |
+
+### 👁️ Viewport Vision Tools (1 tool)
+
+| Tool | Description |
+|------|-------------|
+| `capture_viewport` | Capture the active editor viewport as a Base64 PNG image for visual analysis by VLM-capable models (Claude, GPT-4o, Gemini) |
+
+### 📊 Data & Balancing Tools (2 tools)
+
+| Tool | Description |
+|------|-------------|
+| `create_data_table` | Create DataTable assets from existing FTableRowBase-derived structs |
+| `import_json_to_datatable` | Populate DataTables with AI-generated JSON data (e.g., weapon stats, item databases, level progression) |
+
+### 🔍 Diagnostics Tools (1 tool)
+
+| Tool | Description |
+|------|-------------|
+| `read_message_log` | Capture recent Output Log entries with filtering by category (LogScript, LogBlueprintUserMessages) and severity (Error, Warning) |
+
+### 🧠 Gameplay AI Tools (4 tools)
+
+| Tool | Description |
+|------|-------------|
+| `create_blackboard` | Create Blackboard assets and define typed keys (Bool, Int, Float, String, Vector, Object, Class, Enum) |
+| `create_behavior_tree` | Create Behavior Tree assets and assign Blackboard data |
+| `inject_bt_nodes` | Inject Selectors, Sequences, Parallels, Wait, and MoveTo task nodes into BTs |
+| `configure_navmesh` | Spawn NavMeshBoundsVolumes, scale to level, and trigger NavMesh rebuilds |
+
+### 🎬 Sequencer & Cinematics Tools (3 tools)
+
+| Tool | Description |
+|------|-------------|
+| `create_level_sequence` | Create cinematic timelines and optionally spawn them in the world |
+| `add_sequencer_track` | Add Actor Transform, Camera Cut, or Audio tracks to a sequence |
+| `add_sequencer_keyframe` | Animate properties over time (location, rotation, scale at specific timestamps) |
+
+### 🕹️ Runtime Testing Tools (3 tools)
+
+| Tool | Description |
+|------|-------------|
+| `start_pie_session` | Launch Play-In-Editor (PIE) to test gameplay logic |
+| `simulate_input` | Inject keyboard/gamepad key presses during a running PIE session |
+| `stop_pie_session` | End the current PIE session |
+
+### ⚔️ Gameplay Ability System (GAS) Tools (5 tools)
+
+| Tool | Description |
+|------|-------------|
+| `gas_register_tags` | Register gameplay tags in DefaultGameplayTags.ini — immediately available, no restart needed |
+| `gas_create_attribute_set` | Generate C++ UAttributeSet with FGameplayAttributeData, ATTRIBUTE_ACCESSORS macros, and replication boilerplate |
+| `gas_setup_asc` | Add UAbilitySystemComponent to a Blueprint actor via SCS |
+| `gas_create_effect` | Create UGameplayEffect Blueprints with UE 5.3+ GEComponent routing for tags (UTargetTagsGameplayEffectComponent, etc.) |
+| `gas_create_ability` | Create UGameplayAbility Blueprints with instancing policy, net execution policy, cooldown/cost GE references |
+
+### ✅ Validation & Testing Tools (2 tools)
+
+| Tool | Description |
+|------|-------------|
+| `validate_assets` | Run UE's official Data Validation (UEditorValidatorSubsystem) on specified assets or the entire project — checks missing references, invalid properties, broken dependencies |
+| `run_automation_tests` | Run Unreal Automation Tests matching a filter pattern — supports project tests, functional tests, smoke tests, with async result capture |
+
 ### ✅ Task Tools (1 tool)
 
 | Tool | Description |
@@ -323,6 +399,12 @@ Regex-powered file content search with 2-line context before/after each match. F
 - *"Import the FBX meshes from C:/Assets/ and set up Nanite + auto LODs on each one"*
 - *"Create an Animation Blueprint for my character with idle/walk/run locomotion caching in EventGraph"*
 - *"Refactor MyPlayerController.cpp — split the 500-line BeginPlay into smaller functions"*
+- *"Look at the viewport. The main menu widget I just built — is the Start Game button centered? Fix any alignment issues."*
+- *"Play the game, walk the player forward for 3 seconds, and if you see any 'Accessed None' errors in the Message Log, stop and fix them."*
+- *"Generate an RPG weapon stats DataTable from my FWeaponStruct, calculate a level 1-10 damage progression, and populate it with 10 balanced weapons."*
+- *"Create a Behavior Tree for an enemy NPC: patrol between waypoints, chase the player on sight, attack within range, flee at low health."*
+- *"Write a Python script to find all Textures in the project that don't match our naming convention and rename them."*
+- *"Set up a cinematic intro sequence: camera starts at the sky, dollies down to the player spawn point over 5 seconds."*
 
 ---
 
@@ -375,7 +457,7 @@ Autonomix/
 │   │   └── SlashCommandRegistry — /command shortcuts with autocomplete
 │   │
 │   ├── AutonomixActions/     # Tool executors (one per domain)
-│   │   ├── BlueprintActions   — T3D injection, components, variables, functions, events
+│   │   ├── BlueprintActions   — T3D injection + auto-layout + pre-flight validation
 │   │   ├── CppActions         — File creation, modification, Live Coding
 │   │   ├── LevelActions       — Actor spawning, lights, world settings
 │   │   ├── MaterialActions    — Material creation, expressions, instances
@@ -389,7 +471,16 @@ Autonomix/
 │   │   ├── SettingsActions    — INI config read/write
 │   │   ├── SourceControlActions — Git/Perforce file operations
 │   │   ├── ContextActions     — Directory listing, asset search, file reading
-│   │   └── MediaActions       — Media asset management
+│   │   ├── MediaActions       — Media asset management
+│   │   ├── PythonActions      — Python script execution via IPythonScriptPlugin
+│   │   ├── ViewportActions    — Viewport capture for multimodal vision
+│   │   ├── DataTableActions   — DataTable creation and JSON population
+│   │   ├── DiagnosticsActions — Output Log reading and filtering
+│   │   ├── BehaviorTreeActions— Blackboard, BT, NavMesh for gameplay AI
+│   │   ├── SequencerActions   — Level Sequences, tracks, keyframes
+│   │   ├── PIEActions         — Play-In-Editor automation and input simulation
+│   │   ├── GASActions         — Gameplay Ability System (tags, attributes, effects, abilities)
+│   │   └── ValidationActions  — Data validation + automation tests
 │   │
 │   └── AutonomixUI/          # Slate widget layer
 │       ├── SAutonomixMainPanel      — Central orchestrator (tabs, agentic loop, tool dispatch)
@@ -410,7 +501,7 @@ Autonomix/
 │
 ├── Resources/
 │   ├── SystemPrompt/         # AI system prompt with rules and workflow
-│   └── ToolSchemas/          # 15 JSON tool definition files
+│   └── ToolSchemas/          # 24 JSON tool definition files
 │
 └── Autonomix.uplugin        # Plugin descriptor (5 modules)
 ```
@@ -469,6 +560,22 @@ All settings are in **Edit → Project Settings → Plugins → Autonomix**:
 
 ---
 
+## Verification Ladder
+
+Autonomix uses a multi-step verification process to ensure AI-generated changes are correct. The agentic loop doesn't stop at "it compiles" — it progressively validates work through increasingly rigorous checks:
+
+| Step | Tool | What It Checks | When It Runs |
+|------|------|----------------|--------------|
+| **1. Compile** | `compile_blueprint`, `trigger_compile` | Syntax errors, type mismatches, missing symbols | After every code/Blueprint modification |
+| **2. Validate** | `validate_assets` | Missing references, invalid properties, broken dependencies, custom project validators | After asset creation/modification batches |
+| **3. Test** | `run_automation_tests` | Functional correctness, smoke tests, project-specific test suites | On request or after major changes |
+| **4. Profile** | `get_performance_stats`, `start_csv_profiler` | FPS impact, memory usage, draw call count, frame time regression | On request for optimization tasks |
+| **5. Inspect** | `capture_viewport`, `read_message_log` | Visual correctness, runtime errors, Accessed None warnings | After PIE sessions or visual changes |
+
+The AI is instructed to climb this ladder progressively: compile first, then validate, then test if tests exist. It never declares a task complete after step 1 alone if higher steps are available and relevant.
+
+---
+
 ## Security
 
 - **No hardcoded keys** — All API keys are stored in UE's per-project config system (`Saved/Config/`), excluded from version control by default.
@@ -490,6 +597,39 @@ Contributions are welcome! Please:
 3. Commit your changes (`git commit -m 'Add amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
+
+### How to Add a New Tool
+
+Every Autonomix tool follows the same pattern. To add a new tool:
+
+1. **Header** — Create `Source/AutonomixActions/Public/YourDomain/AutonomixYourActions.h`
+   - Inherit from `IAutonomixActionExecutor` (defined in `AutonomixInterfaces.h`)
+   - Implement all virtual methods: `GetActionName`, `GetSupportedToolNames`, `ExecuteAction`, etc.
+
+2. **Implementation** — Create `Source/AutonomixActions/Private/YourDomain/AutonomixYourActions.cpp`
+   - Route tool names via `tool_name` field in `ExecuteAction`
+   - Return results via `FAutonomixActionResult` with `bSuccess`, `ResultMessage`, `Errors`, `ModifiedAssets`
+   - Wrap UObject mutations in `FScopedTransaction` for undo support
+
+3. **Tool Schema** — Create `Resources/ToolSchemas/yourdomain_tools.json`
+   - Define tool `name`, `description`, and `input_schema` (JSON Schema format)
+   - Good descriptions dramatically reduce AI hallucination rates
+
+4. **Settings Toggle** — Add a `bool bEnableYourTools` UPROPERTY to `UAutonomixDeveloperSettings`
+   - Set the default in the constructor (`true` for safe tools, `false` for risky ones)
+   - Gate behind `SecurityMode` if the tool modifies files or spawns processes
+
+5. **Register** — In `SAutonomixMainPanel::RegisterExecutors()`:
+   - `#include "YourDomain/AutonomixYourActions.h"`
+   - `ActionRouter->RegisterExecutor(MakeShared<FAutonomixYourActions>());`
+
+6. **Risk Level** — Assign via `GetDefaultRiskLevel()`:
+   - `Low` — Read-only operations (auto-approved)
+   - `Medium` — Asset creation/modification (one-click approval)
+   - `High` — File system writes, process execution, PIE (explicit approval)
+   - `Critical` — Protected file writes (blocked by SafetyGate)
+
+7. **Test** — Verify the tool appears in the AI's tool list and executes correctly
 
 ---
 

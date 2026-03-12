@@ -519,6 +519,38 @@ public:
 		meta = (DisplayName = "Enable Performance Tools"))
 	bool bEnablePerformanceTools;
 
+	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Tools",
+		meta = (DisplayName = "Enable Python Scripting",
+		ToolTip = "Allow AI to write and execute Python scripts via the Python Editor Script Plugin. Requires Developer security mode."))
+	bool bEnablePythonTools;
+
+	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Tools",
+		meta = (DisplayName = "Enable Viewport Capture (Vision)",
+		ToolTip = "Allow AI to capture editor viewport screenshots for visual analysis. Read-only."))
+	bool bEnableViewportCapture;
+
+	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Tools",
+		meta = (DisplayName = "Enable DataTable Tools"))
+	bool bEnableDataTableTools;
+
+	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Tools",
+		meta = (DisplayName = "Enable Behavior Tree / AI Tools"))
+	bool bEnableBehaviorTreeTools;
+
+	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Tools",
+		meta = (DisplayName = "Enable Sequencer / Cinematics Tools"))
+	bool bEnableSequencerTools;
+
+	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Tools",
+		meta = (DisplayName = "Enable PIE Testing Automation",
+		ToolTip = "Allow AI to start/stop Play-In-Editor sessions and simulate input. Requires Developer security mode."))
+	bool bEnablePIETools;
+
+	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Tools",
+		meta = (DisplayName = "Enable Gameplay Ability System (GAS) Tools",
+		ToolTip = "Tools for creating AttributeSets, GameplayEffects, GameplayAbilities, tags, and ASC setup."))
+	bool bEnableGASTools;
+
 	// ============================================================================
 	// Utility
 	// ============================================================================

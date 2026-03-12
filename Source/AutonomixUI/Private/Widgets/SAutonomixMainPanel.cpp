@@ -73,6 +73,17 @@
 #include "Widget/AutonomixWidgetActions.h"
 #include "PCG/AutonomixPCGActions.h"
 
+// v1.1: New tool executors
+#include "Python/AutonomixPythonActions.h"
+#include "Viewport/AutonomixViewportActions.h"
+#include "DataTable/AutonomixDataTableActions.h"
+#include "Diagnostics/AutonomixDiagnosticsActions.h"
+#include "BehaviorTree/AutonomixBehaviorTreeActions.h"
+#include "Sequencer/AutonomixSequencerActions.h"
+#include "PIE/AutonomixPIEActions.h"
+#include "Validation/AutonomixValidationActions.h"
+#include "GAS/AutonomixGASActions.h"
+
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Layout/SSeparator.h"
 #include "Widgets/SBoxPanel.h"
@@ -643,6 +654,22 @@ void SAutonomixMainPanel::RenderActiveConversation()
 		{
 			continue;
 		}
+
+		// Skip tool result messages — they contain raw API round-trip data
+		// (T3D readback, JSON tool output, etc.) that is not user-facing.
+		// During live sessions these flow through the agentic loop invisibly;
+		// on conversation reload they should not be rendered as chat messages.
+		if (Msg.Role == EAutonomixMessageRole::ToolResult)
+		{
+			continue;
+		}
+
+		// Skip messages hidden by condensation or truncation
+		if (!Msg.CondenseParent.IsEmpty() || !Msg.TruncationParent.IsEmpty())
+		{
+			continue;
+		}
+
 		ChatView->AddMessage(Msg);
 	}
 
@@ -1150,6 +1177,44 @@ void SAutonomixMainPanel::RegisterExecutors()
 		ActionRouter->RegisterExecutor(MakeShared<FAutonomixWidgetActions>());
 		ActionRouter->RegisterExecutor(MakeShared<FAutonomixPCGActions>());
 	}
+
+	// ====================================================================
+	// v1.1: New tool executors
+	// ====================================================================
+
+	// Python scripting — opt-in, requires Developer mode
+	if (Settings && Settings->bEnablePythonTools)
+		ActionRouter->RegisterExecutor(MakeShared<FAutonomixPythonActions>());
+
+	// Viewport capture (multimodal vision) — read-only, safe in all modes
+	if (Settings && Settings->bEnableViewportCapture)
+		ActionRouter->RegisterExecutor(MakeShared<FAutonomixViewportActions>());
+
+	// DataTable tools — standard asset creation
+	if (Settings && Settings->bEnableDataTableTools)
+		ActionRouter->RegisterExecutor(MakeShared<FAutonomixDataTableActions>());
+
+	// Diagnostics (read_message_log) — always registered (read-only, safe)
+	ActionRouter->RegisterExecutor(MakeShared<FAutonomixDiagnosticsActions>());
+
+	// Behavior Tree / AI tools
+	if (Settings && Settings->bEnableBehaviorTreeTools)
+		ActionRouter->RegisterExecutor(MakeShared<FAutonomixBehaviorTreeActions>());
+
+	// Sequencer / Cinematics tools
+	if (Settings && Settings->bEnableSequencerTools)
+		ActionRouter->RegisterExecutor(MakeShared<FAutonomixSequencerActions>());
+
+	// PIE automation — opt-in, requires Developer mode
+	if (Settings && Settings->bEnablePIETools)
+		ActionRouter->RegisterExecutor(MakeShared<FAutonomixPIEActions>());
+
+	// Validation & Testing — always registered (read-only, safe in all modes)
+	ActionRouter->RegisterExecutor(MakeShared<FAutonomixValidationActions>());
+
+	// Gameplay Ability System (GAS) tools
+	if (Settings && Settings->bEnableGASTools)
+		ActionRouter->RegisterExecutor(MakeShared<FAutonomixGASActions>());
 }
 
 void SAutonomixMainPanel::ConfigureClientFromSettings()

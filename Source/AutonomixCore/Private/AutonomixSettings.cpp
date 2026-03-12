@@ -105,6 +105,15 @@ UAutonomixDeveloperSettings::UAutonomixDeveloperSettings()
 	bEnableSettingsTools = true;
 	bEnableBuildTools = true;
 	bEnablePerformanceTools = true;
+
+	// New tool defaults (v1.1)
+	bEnablePythonTools = false;        // Opt-in: requires Developer mode, powerful but risky
+	bEnableViewportCapture = true;     // Safe: read-only viewport capture
+	bEnableDataTableTools = true;      // Safe: asset creation
+	bEnableBehaviorTreeTools = true;   // Safe: asset creation + level modification
+	bEnableSequencerTools = true;      // Safe: asset creation + level modification
+	bEnablePIETools = false;           // Opt-in: requires Developer mode, can crash editor
+	bEnableGASTools = true;            // Safe: asset creation + C++ generation
 }
 
 const UAutonomixDeveloperSettings* UAutonomixDeveloperSettings::Get()

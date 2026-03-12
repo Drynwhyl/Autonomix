@@ -55,7 +55,33 @@ public class AutonomixActions : ModuleRules
 			// Enhanced Input asset authoring
 			"EnhancedInput",
 			"InputBlueprintNodes",
-			"InputCore"
+			"InputCore",
+			// Viewport capture (multimodal vision)
+			"ImageWrapper",
+			"Slate",
+			"SlateCore",
+			// Behavior Tree / AI
+			"GameplayTasks",
+			// Sequencer / Cinematics
+			"LevelSequence",
+			"MovieScene",
+			"MovieSceneTracks",
+			"MovieSceneTools",
+			// Python scripting (conditional)
+			"PythonScriptPlugin",
+			// Data Validation (UEditorValidatorSubsystem)
+			"DataValidation",
+			// Gameplay Ability System
+			"GameplayAbilities",
+			"GameplayTags",
+			"GameplayTagsEditor",
+			"GameplayAbilitiesEditor"
 		});
+
+		// Conditionally add Python support
+		if (Target.bBuildWithEditorOnlyData)
+		{
+			PrivateDefinitions.Add("WITH_PYTHON=1");
+		}
 	}
 }

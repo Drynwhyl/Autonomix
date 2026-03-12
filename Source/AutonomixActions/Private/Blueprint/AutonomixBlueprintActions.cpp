@@ -1365,6 +1365,16 @@ FAutonomixActionResult FAutonomixBlueprintActions::ExecuteInjectNodesT3D(const T
 		return Result;
 	}
 
+	// v1.1: Pre-flight validation — check T3D references against reflection
+	{
+		TArray<FString> PreFlightWarnings;
+		PreFlightValidateT3D(T3DText, Blueprint, PreFlightWarnings);
+		for (const FString& Warn : PreFlightWarnings)
+		{
+			Result.Warnings.Add(FString::Printf(TEXT("PRE-FLIGHT: %s"), *Warn));
+		}
+	}
+
 	// Resolve placeholder GUID tokens → real GUIDs
 	FString ResolvedT3D = ResolveT3DPlaceholders(T3DText);
 
@@ -1452,6 +1462,33 @@ FAutonomixActionResult FAutonomixBlueprintActions::ExecuteInjectNodesT3D(const T
 				TEXT("These are T3D cross-references that point to nodes not present in the current graph injection batch. ")
 				TEXT("Affected pins are now disconnected. Call verify_blueprint_connections to diagnose and repair missing wires."),
 				TotalSanitisedLinks));
+		}
+	}
+
+	// -----------------------------------------------------------------------
+	// v1.1: AUTO-LAYOUT — Sugiyama-style DAG layout for human-readable graphs
+	// Nodes injected via T3D often stack at (0,0). This post-pass organizes
+	// them into readable left-to-right execution flow.
+	// -----------------------------------------------------------------------
+	{
+		bool bAutoLayout = true;
+		Params->TryGetBoolField(TEXT("auto_layout"), bAutoLayout);
+
+		if (bAutoLayout && ImportedNodes.Num() > 1)
+		{
+			// Find a suitable start position (offset from existing nodes)
+			int32 MaxExistingY = 0;
+			for (UEdGraphNode* ExistingNode : TargetGraph->Nodes)
+			{
+				if (ExistingNode && !ImportedNodes.Contains(ExistingNode))
+				{
+					MaxExistingY = FMath::Max(MaxExistingY, ExistingNode->NodePosY + 200);
+				}
+			}
+
+			AutoLayoutNodes(ImportedNodes, 0, MaxExistingY);
+			Result.Warnings.Add(TEXT("AUTO-LAYOUT: Applied Sugiyama DAG layout to injected nodes for readability. "
+				"Set auto_layout=false to preserve AI-specified positions."));
 		}
 	}
 
@@ -2576,3 +2613,219 @@ void FAutonomixBlueprintActions::ResolvePinType(const FString& TypeName, FEdGrap
 	
 		return Result;
 	}
+
+// ============================================================================
+// AutoLayoutNodes — Sugiyama-style layered DAG layout for injected nodes
+// ============================================================================
+
+void FAutonomixBlueprintActions::AutoLayoutNodes(
+	const TSet<UEdGraphNode*>& Nodes,
+	int32 StartX, int32 StartY,
+	int32 LayerSpacingX, int32 NodeSpacingY)
+{
+	if (Nodes.Num() == 0) return;
+
+	// Step 1: Build adjacency map (following exec output pins → exec input pins)
+	TMap<UEdGraphNode*, TArray<UEdGraphNode*>> Successors;
+	TMap<UEdGraphNode*, int32> InDegree;
+	TSet<UEdGraphNode*> NodeSet = Nodes;
+
+	for (UEdGraphNode* Node : NodeSet)
+	{
+		if (!Node) continue;
+		if (!InDegree.Contains(Node)) InDegree.Add(Node, 0);
+
+		for (UEdGraphPin* Pin : Node->Pins)
+		{
+			if (!Pin) continue;
+			// Follow exec output pins
+			if (Pin->Direction == EGPD_Output &&
+				(Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Exec))
+			{
+				for (UEdGraphPin* LinkedPin : Pin->LinkedTo)
+				{
+					if (!LinkedPin) continue;
+					UEdGraphNode* SuccNode = LinkedPin->GetOwningNode();
+					if (SuccNode && NodeSet.Contains(SuccNode))
+					{
+						Successors.FindOrAdd(Node).AddUnique(SuccNode);
+						InDegree.FindOrAdd(SuccNode, 0)++;
+					}
+				}
+			}
+		}
+	}
+
+	// Step 2: Topological sort (Kahn's algorithm) → layer assignment
+	TArray<UEdGraphNode*> Queue;
+	for (auto& KV : InDegree)
+	{
+		if (KV.Value == 0 && KV.Key)
+			Queue.Add(KV.Key);
+	}
+
+	// Assign layers via longest-path from sources
+	TMap<UEdGraphNode*, int32> LayerMap;
+	for (UEdGraphNode* N : NodeSet) { LayerMap.Add(N, 0); }
+
+	TArray<UEdGraphNode*> ProcessOrder;
+	int32 QueueIdx = 0;
+	while (QueueIdx < Queue.Num())
+	{
+		UEdGraphNode* Current = Queue[QueueIdx++];
+		ProcessOrder.Add(Current);
+
+		if (TArray<UEdGraphNode*>* Succs = Successors.Find(Current))
+		{
+			for (UEdGraphNode* Succ : *Succs)
+			{
+				int32 NewLayer = LayerMap[Current] + 1;
+				if (NewLayer > LayerMap[Succ])
+					LayerMap[Succ] = NewLayer;
+
+				InDegree[Succ]--;
+				if (InDegree[Succ] == 0)
+					Queue.Add(Succ);
+			}
+		}
+	}
+
+	// Handle nodes not reached by topological sort (data-only nodes without exec connections)
+	for (UEdGraphNode* N : NodeSet)
+	{
+		if (!ProcessOrder.Contains(N))
+			ProcessOrder.Add(N);
+	}
+
+	// Step 3: Group nodes by layer
+	TMap<int32, TArray<UEdGraphNode*>> Layers;
+	for (UEdGraphNode* N : ProcessOrder)
+	{
+		Layers.FindOrAdd(LayerMap[N]).Add(N);
+	}
+
+	// Step 4: Assign coordinates
+	TArray<int32> LayerKeys;
+	Layers.GetKeys(LayerKeys);
+	LayerKeys.Sort();
+
+	for (int32 LayerIdx = 0; LayerIdx < LayerKeys.Num(); ++LayerIdx)
+	{
+		TArray<UEdGraphNode*>& LayerNodes = Layers[LayerKeys[LayerIdx]];
+		int32 X = StartX + LayerIdx * LayerSpacingX;
+
+		for (int32 NodeIdx = 0; NodeIdx < LayerNodes.Num(); ++NodeIdx)
+		{
+			UEdGraphNode* Node = LayerNodes[NodeIdx];
+			if (!Node) continue;
+
+			Node->NodePosX = X;
+			Node->NodePosY = StartY + NodeIdx * NodeSpacingY;
+		}
+	}
+
+	UE_LOG(LogAutonomix, Log, TEXT("BlueprintActions: Auto-layout applied to %d nodes across %d layers"),
+		Nodes.Num(), LayerKeys.Num());
+}
+
+// ============================================================================
+// PreFlightValidateT3D — Validate T3D references against reflection
+// ============================================================================
+
+bool FAutonomixBlueprintActions::PreFlightValidateT3D(
+	const FString& T3DText,
+	const UBlueprint* Blueprint,
+	TArray<FString>& OutWarnings)
+{
+	bool bValid = true;
+
+	// Extract Class= references from T3D and validate they exist
+	// Pattern: Class=/Script/ModuleName.ClassName
+	TArray<FString> Lines;
+	T3DText.ParseIntoArrayLines(Lines);
+
+	for (int32 i = 0; i < Lines.Num(); ++i)
+	{
+		const FString& Line = Lines[i].TrimStartAndEnd();
+
+		// Check for Begin Object Class= lines
+		if (Line.StartsWith(TEXT("Begin Object")) && Line.Contains(TEXT("Class=")))
+		{
+			// Extract the class path
+			FString ClassPath;
+			int32 ClassStart = Line.Find(TEXT("Class="));
+			if (ClassStart != INDEX_NONE)
+			{
+				FString AfterClass = Line.Mid(ClassStart + 6);
+				// Class path ends at the next space or quote
+				int32 EndPos;
+				if (AfterClass.FindChar(TEXT(' '), EndPos) || AfterClass.FindChar(TEXT('"'), EndPos))
+					ClassPath = AfterClass.Left(EndPos);
+				else
+					ClassPath = AfterClass;
+
+				ClassPath = ClassPath.TrimQuotes();
+
+				// Try to find the class
+				UClass* NodeClass = FindFirstObject<UClass>(*FPackageName::GetLongPackageAssetName(ClassPath), EFindFirstObjectOptions::NativeFirst);
+				if (!NodeClass)
+				{
+					// Try loading the class
+					NodeClass = LoadClass<UEdGraphNode>(nullptr, *ClassPath);
+				}
+
+				if (!NodeClass)
+				{
+					OutWarnings.Add(FString::Printf(
+						TEXT("T3D line %d: Node class '%s' not found. This node may not be importable. "
+							 "Verify the class path. Common classes: K2Node_CallFunction, K2Node_VariableGet, "
+							 "K2Node_DynamicCast, K2Node_IfThenElse, K2Node_Timeline."),
+						i + 1, *ClassPath));
+					bValid = false;
+				}
+			}
+		}
+
+		// Check for FunctionReference MemberName= to validate function existence
+		if (Line.Contains(TEXT("MemberName=\"")))
+		{
+			int32 MemberStart = Line.Find(TEXT("MemberName=\"")) + 12;
+			int32 MemberEnd = Line.Find(TEXT("\""), ESearchCase::CaseSensitive, ESearchDir::FromStart, MemberStart);
+			if (MemberEnd > MemberStart)
+			{
+				FString MemberName = Line.Mid(MemberStart, MemberEnd - MemberStart);
+
+				// Skip engine functions — they're almost always valid
+				// Only warn on project-specific function names that might be misspelled
+				if (!MemberName.IsEmpty() && Blueprint)
+				{
+					// Check if this looks like a project-specific function (contains the project name or custom prefix)
+					// We don't validate engine functions to avoid false positives
+					FString ProjectName = FApp::GetProjectName();
+					if (MemberName.Contains(ProjectName, ESearchCase::IgnoreCase))
+					{
+						// This might be a project function — verify it exists
+						bool bFound = false;
+						for (UEdGraph* FuncGraph : Blueprint->FunctionGraphs)
+						{
+							if (FuncGraph && FuncGraph->GetName() == MemberName)
+							{
+								bFound = true;
+								break;
+							}
+						}
+						if (!bFound)
+						{
+							OutWarnings.Add(FString::Printf(
+								TEXT("T3D line %d: Function '%s' referenced but not found in Blueprint. "
+									 "Ensure it exists before injection. Use add_blueprint_function to create it."),
+								i + 1, *MemberName));
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return bValid;
+}

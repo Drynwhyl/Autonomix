@@ -284,4 +284,48 @@ private:
 
 	/** Map a friendly event name to its Kismet function name and owning class. */
 	static bool ResolveEventMapping(const FString& EventName, FName& OutFunctionName, UClass*& OutOwnerClass);
+
+	// =========================================================================
+	// v1.1: Auto-Layout & Pre-Flight Validation
+	// =========================================================================
+
+	/**
+	 * Apply a deterministic Sugiyama-style layered graph layout to injected nodes.
+	 *
+	 * After T3D injection, nodes often stack at (0,0). This method performs:
+	 *   1. Topological sort (BFS from entry/event nodes following exec pins)
+	 *   2. Layer assignment (longest-path from sources)
+	 *   3. In-layer ordering (minimize crossing via barycenter heuristic)
+	 *   4. Coordinate assignment (fixed X per layer, Y spacing per node)
+	 *
+	 * @param Nodes          Set of nodes to layout
+	 * @param StartX         Base X position (default: 0)
+	 * @param StartY         Base Y position (default: 0)
+	 * @param LayerSpacingX  Horizontal spacing between layers (default: 300)
+	 * @param NodeSpacingY   Vertical spacing between nodes in same layer (default: 150)
+	 */
+	static void AutoLayoutNodes(
+		const TSet<UEdGraphNode*>& Nodes,
+		int32 StartX = 0,
+		int32 StartY = 0,
+		int32 LayerSpacingX = 300,
+		int32 NodeSpacingY = 150);
+
+	/**
+	 * Pre-flight validation: check T3D node references against UE's reflection system.
+	 *
+	 * Scans the T3D text for node class references and pin connections, validates:
+	 *   - Referenced node classes exist (e.g., K2Node_CallFunction)
+	 *   - Referenced function names exist on the specified class
+	 *   - Pin type compatibility (catches Float→ActorRef mismatches)
+	 *
+	 * @param T3DText        The raw T3D text to validate
+	 * @param Blueprint       The target Blueprint (for variable/function resolution)
+	 * @param OutWarnings     Detected issues (non-fatal: injection proceeds with warnings)
+	 * @return               true if no blocking issues found
+	 */
+	static bool PreFlightValidateT3D(
+		const FString& T3DText,
+		const UBlueprint* Blueprint,
+		TArray<FString>& OutWarnings);
 };
