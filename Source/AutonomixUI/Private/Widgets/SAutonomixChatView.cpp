@@ -18,7 +18,9 @@ void SAutonomixChatView::Construct(const FArguments& InArgs)
 
 void SAutonomixChatView::AddMessage(const FAutonomixMessage& Message)
 {
-	if (Message.Content.IsEmpty())
+	// Allow empty messages if they are placeholders for streaming text.
+	// Otherwise, the streaming text will be appended to the previous message.
+	if (Message.Content.IsEmpty() && !Message.bIsStreaming)
 	{
 		return;
 	}

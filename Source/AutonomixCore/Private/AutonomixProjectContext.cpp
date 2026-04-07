@@ -20,6 +20,9 @@ FString FAutonomixProjectContext::ToContextString() const
 	Result += FString::Printf(TEXT("Content Files: %d\n"), ContentTree.Num());
 	Result += FString::Printf(TEXT("Source Files: %d\n"), SourceTree.Num());
 
+
+	
+
 	return Result;
 }
 

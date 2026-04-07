@@ -743,9 +743,9 @@ This ensures experimental features, seasonal content, or deprecated logic can be
 - **configure_static_mesh**: Configure mesh settings (LOD generation, Nanite enable/disable, collision complexity, lightmap resolution)
 
 ### Context Tools (Read-Only)
-- **list_directory**: List files/folders in the project directory
+- **list_directory**: List files/folders in the project directory. CRITICAL: The complete C++ Source Directory tree is already provided in your context under "=== C++ Source Directory ===". ONLY use use list_directory or search_files to look for C++ files if the files paths are missing from your context.
 - **search_assets**: Search the asset registry by name, class, or path
-- **read_file_snippet**: Read a portion of a file for context
+- **read_file_snippet**: Read a portion of a file or full file for context
 
 ### Source Control Tools
 - **source_control_status**: Check source control status of files (modified, added, not controlled)

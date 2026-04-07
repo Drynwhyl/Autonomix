@@ -307,9 +307,13 @@ FAutonomixActionResult FAutonomixContextActions::ExecuteReadFileSnippet(const TS
 	TArray<FString> Lines;
 	FileContent.ParseIntoArrayLines(Lines);
 
-	if (EndLine <= 0) EndLine = FMath::Min(StartLine + 99, Lines.Num()); // Default: 100 lines
+	// Read the entire file if end_line is not explicitly provided
+	if (EndLine <= 0) EndLine = Lines.Num(); 
+	
 	EndLine = FMath::Min(EndLine, Lines.Num());
-	EndLine = FMath::Min(EndLine, StartLine + 499); // Hard cap: 500 lines per read
+	
+	// Remove the 500 line hard cap and increase it significantly for large context LLMs
+	EndLine = FMath::Min(EndLine, StartLine + 99999); 
 
 	FString Output = FString::Printf(TEXT("=== %s (lines %d-%d of %d) ===\n"), *FilePath, StartLine, EndLine, Lines.Num());
 

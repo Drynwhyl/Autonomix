@@ -357,11 +357,11 @@ FString FAutonomixChatSession::ExecuteToolCall(const FAutonomixToolCall& ToolCal
 		if (ToolSchemaRegistry.IsValid() && ToolCall.InputParams.IsValid())
 		{
 			FString RequestedTool;
-			ToolCall.InputParams->TryGetStringField(TEXT("tool_name"), RequestedTool);
+			ToolCall.InputParams->TryGetStringField(TEXT("target_tool"), RequestedTool);
 			if (RequestedTool.IsEmpty())
 			{
 				bOutIsError = true;
-				return TEXT("Error: 'tool_name' parameter is required. Example: get_tool_info({\"tool_name\": \"create_material\"})");
+				return TEXT("Error: 'target_tool' parameter is required. Example: get_tool_info({\"target_tool\": \"create_material\"})");
 			}
 			return ToolSchemaRegistry->GetToolInfoString(RequestedTool);
 		}

@@ -5,16 +5,16 @@
   "tools": [
     {
       "name": "get_tool_info",
-      "description": "Load the full schema for a specific tool. Use when you need a domain tool not in your current set. Returns the complete input_schema with all parameters, plus related tools in the same category.",
+      "description": "Load the full schema for a specific tool. Returns the complete input_schema with all parameters.",
       "input_schema": {
         "type": "object",
         "properties": {
-          "tool_name": {
+          "target_tool": {
             "type": "string",
-            "description": "Exact tool name (e.g. 'create_material', 'add_blueprint_variable')"
+            "description": "Exact tool name (e.g. 'modify_cpp_file', 'create_material')"
           }
         },
-        "required": ["tool_name"]
+        "required": ["target_tool"]
       }
     },
     {

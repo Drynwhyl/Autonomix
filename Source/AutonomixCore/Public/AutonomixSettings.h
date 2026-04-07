@@ -491,7 +491,7 @@ public:
 
 	/** Maximum token budget for project context in each AI request */
 	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Context",
-		meta = (DisplayName = "Context Token Budget", ClampMin = "1000", ClampMax = "100000"))
+		meta = (DisplayName = "Context Token Budget", ClampMin = "1000", ClampMax = "2000000"))
 	int32 ContextTokenBudget;
 
 	/** Include source file tree in context */

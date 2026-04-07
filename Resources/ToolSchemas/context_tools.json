@@ -63,7 +63,7 @@
           },
           "end_line": {
             "type": "integer",
-            "description": "Last line to read (default: start_line + 99, max 500 lines per read)"
+            "description": "Last line to read (default: reads to the very end of the file)"
           }
         },
         "required": [

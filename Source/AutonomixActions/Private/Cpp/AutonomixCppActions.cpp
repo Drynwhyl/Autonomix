@@ -218,7 +218,12 @@ FAutonomixActionResult FAutonomixCppActions::ExecuteCreateCppClass(const TShared
 FAutonomixActionResult FAutonomixCppActions::ExecuteModifyCppFile(const TSharedRef<FJsonObject>& Params, FAutonomixActionResult& Result)
 {
 	FString FilePath = Params->GetStringField(TEXT("file_path"));
-	FString Content = Params->GetStringField(TEXT("content"));
+
+	// Convert relative path from LLM payload to absolute path to match UE directories
+	if (FPaths::IsRelative(FilePath))
+	{
+		FilePath = FPaths::ConvertRelativePathToFull(FPaths::ProjectDir(), FilePath);
+	}
 
 	// Validate the path is within project source
 	if (!FilePath.StartsWith(FPaths::GameSourceDir()) && !FilePath.StartsWith(FPaths::ProjectDir()))
@@ -226,6 +231,8 @@ FAutonomixActionResult FAutonomixCppActions::ExecuteModifyCppFile(const TSharedR
 		Result.Errors.Add(FString::Printf(TEXT("Path not allowed: %s (must be within project source)"), *FilePath));
 		return Result;
 	}
+
+	FString Content = Params->GetStringField(TEXT("content"));
 
 	// Validate code safety
 	TArray<FString> Violations;
